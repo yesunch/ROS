@@ -12,23 +12,27 @@ class Teleoperation_Node:
     def __init__(self, node_name):
 
 	rospy.init_node(node_name)	# creation of the node
-	pub = rospy.Publisher("cmd_vel_mux/input/navi", Twist, queue_size=10)	# creation of the topic : cmd_vel 
+	pub = rospy.Publisher("cmd_vel_mux/input/navi", Twist, queue_size=10)	# creation of the topic : cmd_vel_mux/input/navi, used to move the robot 
 	move_cmd = Twist()	# creation of the Twist to store the move commands
-	linear_speed = 0.2	# the linear speed
-	angular_speed = 0.2	# the angular speed
+	linear_speed = 5.0	# the linear speed
+	angular_speed = 3.0	# the angular speed
 	cmd = str()		# init the command letter
 	rate = rospy.Rate(2) 	# Rate of 2hz
 
 	while not rospy.is_shutdown(): # while the user has not pressed crtl+c
 
-		cmd = self.getKey()
+		cmd = self.getKey()		# we get the key pressed by the user
 		# Setting the Twist according to the key pressed by the user
 		if (cmd == rospy.get_param('increaseSpeed')):		# increase the linear and angular speed
-			move_cmd.linear.x = move_cmd.linear.x*1.1
-			move_cmd.angular.z = move_cmd.angular.z*1.1
+			linear_speed = linear_speed*1.1
+			angular_speed = angular_speed*1.1
+			move_cmd.linear.x = 0	# we dont move the robot
+			move_cmd.angular.z = 0
 		elif (cmd == rospy.get_param('decreaseSpeed')):		# decrease the linear and angular speed
-			move_cmd.linear.x = move_cmd.linear.x*0.9
-			move_cmd.angular.z = move_cmd.angular.z*0.9
+			linear_speed = linear_speed*0.9
+			angular_speed = angular_speed*0.9
+			move_cmd.linear.x = 0	# we dont move the robot
+			move_cmd.angular.z = 0
 		elif (cmd == rospy.get_param('forward')):		# Move Forward
 			move_cmd.linear.x = linear_speed
 			move_cmd.angular.z = 0
