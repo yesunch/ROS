@@ -70,6 +70,7 @@ class Estimation_Node:
 
 		enoughPoints = True
 		MIN_POINT_NUMBER = 4
+		orthogonalPlanes = True
 
 		# Test if there are sufficient points for each plane
 		if len(self.plane_points["red"]) < MIN_POINT_NUMBER:
@@ -91,29 +92,32 @@ class Estimation_Node:
 		
 
 		# Verify that each pair of 3D planes are approximately orthogonal to each other
-		### Enter your code ###
+			if (np.dot(red_plan_equation, green_plan_equation) == 0 and nb.dot(red_plan_equation, blue_plan_equation) == 0 and np.dot(green_plan_equation, blue_plan_equation) == 0):
+				orthogonalPlanes = False
+				
+			if (orthogonalPlanes):
+			
+				# Feature detection
+				# Solve 3x3 linear system of equations given by the three intersecting planes, in order to find their point of intersection
+				### Enter your code ###
 
-		# Feature detection
-		# Solve 3x3 linear system of equations given by the three intersecting planes, in order to find their point of intersection
-		### Enter your code ###
+				# Obtain z-axis (blue) vector as the vector orthogonal to the 3D plane defined by the red (x-axis) and the green (y-axis)
+				### Enter your code ###
 
-		# Obtain z-axis (blue) vector as the vector orthogonal to the 3D plane defined by the red (x-axis) and the green (y-axis)
-		### Enter your code ###
+				# Obtain y-axis (green) vector as the vector orthogonal to the 3D plane defined by the blue (z-axis) and the red (x-axis)
+				### Enter your code ###
 
-		# Obtain y-axis (green) vector as the vector orthogonal to the 3D plane defined by the blue (z-axis) and the red (x-axis)
-		### Enter your code ###
+				# Construct the 3x3 rotation matrix whose columns correspond to the x, y and z axis respectively
+				### Enter your code ###
 
-		# Construct the 3x3 rotation matrix whose columns correspond to the x, y and z axis respectively
-		### Enter your code ###
+				# Obtain the corresponding euler angles from the previous 3x3 rotation matrix
+				### Enter your code ###
 
-		# Obtain the corresponding euler angles from the previous 3x3 rotation matrix
-		### Enter your code ###
+				# Set the translation part of the 6DOF pose 'self.feature_pose'
+				### Enter your code ###
 
-		# Set the translation part of the 6DOF pose 'self.feature_pose'
-		### Enter your code ###
-
-		# Set the rotation part of the 6DOF pose 'self.feature_pose'
-		### Enter your code ###
+				# Set the rotation part of the 6DOF pose 'self.feature_pose'
+				### Enter your code ###
 
 		# Publish the transform using the data stored in the 'self.feature_pose'
 		self.br.sendTransform((self.feature_pose.translation.x, self.feature_pose.translation.y, self.feature_pose.translation.z), self.feature_pose.rotation, rospy.Time.now(), "corner_6dof_pose", "camera_depth_optical_frame") 
