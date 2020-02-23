@@ -40,19 +40,6 @@ class Estimation_Node:
 		self.plane_points["green"] = []
 		self.plane_points["blue"] = []
 		
-		
-	def estimate_plan_equation(self, plane_points):
-		A_tmp = []
-		B_tmp = []
-		for i in range(len(plane_points)):
-			A_tmp.append([plane_points[0], plane_points[1], 1])
-			B_tmp.append(plane_points[2])
-		A = np.matrix(A_tmp)
-		B = np.matrix(B_tmp)
-		fit = (A.T * A).I * A.T * B
-		return fit
-		
-
 	def estimate_pose_callback(self, pointcloud_msg):
 		#print 'Received PointCloud2 message. Reading data...'
 		point_list = sensor_msgs.point_cloud2.read_points(pointcloud_msg, skip_nans=True, field_names = ("x", "y", "z", "rgb"))
@@ -68,41 +55,58 @@ class Estimation_Node:
 			elif rgb[0] > 100 and rgb[2] < 20 and rgb[1] < 20: # If dominant blue point, concatenate it
 				self.plane_points["blue"] += [[point[0], point[1], point[2]]]
 
+
+		# boolean to check if there are enough points or if the plans are orthogonal
 		enoughPoints = True
-		MIN_POINT_NUMBER = 4
 		orthogonalPlanes = True
 
 		# Test if there are sufficient points for each plane
-		if len(self.plane_points["red"]) < MIN_POINT_NUMBER:
+		if len(self.plane_points["red"]) < self.num_of_plane_points:
 			print("Not enough points of red plane")
 			enoughPoints = False
-		if len(self.plane_points["green"]) < MIN_POINT_NUMBER:
+		elif len(self.plane_points["green"]) < self.num_of_plane_points:
 			print("Not enough points of green plane")
 			enoughPoints = False
-		if len(self.plane_points["blue"]) < MIN_POINT_NUMBER:
+		elif len(self.plane_points["blue"]) < self.num_of_plane_points:
 			print("Not enough points of blue plane")
 			enoughPoints = False
 		
 		if (enoughPoints):
+			# get only for points for every plane
+			selected_red_points = random.choices(plane_points["red"], k=4)
+			selected_green_points = random.choices(plane_points["green"], k=4)
+			selected_blue_points = random.choices(plane_points["blue"], k=4)
+		
 			# Estimate the plane equation for each colored point set using Least Squares algorithm
-			# Estimate Red Plane equation
-			red_plan_equation = self.estimate_plan_equation(self.plane_points["red"])
-			green_plan_equation = self.estimate_plan_equation(self.plane_points["green"])
-			blue_plan_equation = self.estimate_plan_equation(self.plane_points["blue"])
+			# To estimate every plan, we set d = -1. We obtain the following equations :
+			B = [1, 1, 1, 1]
+			self.plane_params["red"][0], self.plane_params["red"][1], self.plane_params["red"][2] = np.linalg.lstsq(selected_red_points, B, rcond=None)
+			self.plane_params["green"][0], self.plane_params["green"][1], self.plane_params["green"][2] = np.linalg.lstsq(selected_red_points, B, rcond=None)
+			self.plane_params["blue"][0], self.plane_params["blue"][1], self.plane_params["blue"][2] = np.linalg.lstsq(selected_red_points, B, rcond=None)
+			
 		
 
 		# Verify that each pair of 3D planes are approximately orthogonal to each other
-			if (np.dot(red_plan_equation, green_plan_equation) == 0 and nb.dot(red_plan_equation, blue_plan_equation) == 0 and np.dot(green_plan_equation, blue_plan_equation) == 0):
-				orthogonalPlanes = False
+			orthoTestRedBlue = np.dot(self.plane_params["red"], self.plane_params["blue"])
+			orthoTestRedGreen = np.dot(self.plane_params["red"], self.plane_params["green"])
+			orthoTestBlueGreen = np.dot(self.plane_params["blue"], self.plane_params["green"])
+			
+			MIN_ORTHOGONAL_THRESHOLD = 1
+			
+			if (orthoTestRedBlue > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedBlue < MIN_ORTHOGONAL_THRESHOLD):
+				if (orthoTestRedGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedBlue < MIN_ORTHOGONAL_THRESHOLD):
+					if (orthoTestBlueGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestBlueGreen < MIN_ORTHOGONAL_THRESHOLD):
+						orthogonalPlanes = True
 				
 			if (orthogonalPlanes):
 			
 				# Feature detection
 				# Solve 3x3 linear system of equations given by the three intersecting planes, in order to find their point of intersection
-				### Enter your code ###
+				interPoint = np.linalg.solve([self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]], np.array([1, 1, 1])
 
 				# Obtain z-axis (blue) vector as the vector orthogonal to the 3D plane defined by the red (x-axis) and the green (y-axis)
 				### Enter your code ###
+				
 
 				# Obtain y-axis (green) vector as the vector orthogonal to the 3D plane defined by the blue (z-axis) and the red (x-axis)
 				### Enter your code ###
@@ -112,15 +116,21 @@ class Estimation_Node:
 
 				# Obtain the corresponding euler angles from the previous 3x3 rotation matrix
 				### Enter your code ###
+				# use tf.transformations.euler_from_matrix
 
 				# Set the translation part of the 6DOF pose 'self.feature_pose'
 				### Enter your code ###
+				self.feature_pose.translation.x = interPoint[0]
+				self.feature_pose.translation.y = interPoint[1]
+				self.feature_pose.translation.z = interPoint[2]
+
 
 				# Set the rotation part of the 6DOF pose 'self.feature_pose'
 				### Enter your code ###
+				# use tf.transformations.quaternion_from_euler
 
 		# Publish the transform using the data stored in the 'self.feature_pose'
-		self.br.sendTransform((self.feature_pose.translation.x, self.feature_pose.translation.y, self.feature_pose.translation.z), self.feature_pose.rotation, rospy.Time.now(), "corner_6dof_pose", "camera_depth_optical_frame") 
+				self.br.sendTransform((self.feature_pose.translation.x, self.feature_pose.translation.y, self.feature_pose.translation.z), self.feature_pose.rotation, rospy.Time.now(), "corner_6dof_pose", "camera_depth_optical_frame") 
 
 		# Empty points
 		self.empty_points()
