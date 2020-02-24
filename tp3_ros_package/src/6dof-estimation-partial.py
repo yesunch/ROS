@@ -58,7 +58,7 @@ class Estimation_Node:
 
 		# boolean to check if there are enough points or if the plans are orthogonal
 		enoughPoints = True
-		orthogonalPlanes = True
+		orthogonalPlanes = False
 
 		# Test if there are sufficient points for each plane
 		if len(self.plane_points["red"]) < self.num_of_plane_points:
@@ -92,36 +92,36 @@ class Estimation_Node:
 			# To estimate every plan, we set d = -1. We obtain the following equations :
 			B = [1.0, 1.0, 1.0, 1.0]
 			
-			
-			"""
-			print(type(self.plane_params["red"][0]))
-			print(type(B[0]))
-			print(len(selected_red_points))
-			print(selected_red_points)
-			print(type(selected_red_points[0]))
-			print(type(np.linalg.lstsq(selected_red_points, B, rcond=None)[0]))
-			"""
-			
+	
 			self.plane_params["red"][0], self.plane_params["red"][1], self.plane_params["red"][2] = np.linalg.lstsq(selected_red_points, B, rcond=1.e-10)[0]
 			self.plane_params["green"][0], self.plane_params["green"][1], self.plane_params["green"][2] = np.linalg.lstsq(selected_green_points, B, rcond=1.e-10)[0]
 			self.plane_params["blue"][0], self.plane_params["blue"][1], self.plane_params["blue"][2] = np.linalg.lstsq(selected_blue_points, B, rcond=1.e-10)[0]
 			
 		
+			print("The planes params :")
+			print(self.plane_params["red"])
+			print(self.plane_params["green"])
+			print(self.plane_params["blue"])
 
 		# Verify that each pair of 3D planes are approximately orthogonal to each other
 			orthoTestRedBlue = np.dot(self.plane_params["red"], self.plane_params["blue"])
 			orthoTestRedGreen = np.dot(self.plane_params["red"], self.plane_params["green"])
 			orthoTestBlueGreen = np.dot(self.plane_params["blue"], self.plane_params["green"])
 			
-			MIN_ORTHOGONAL_THRESHOLD = 1
+			print(orthoTestRedBlue)
+			print(orthoTestRedGreen)
+			print(orthoTestBlueGreen)
+			
+			MIN_ORTHOGONAL_THRESHOLD = 1.5
 			
 			if (orthoTestRedBlue > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedBlue < MIN_ORTHOGONAL_THRESHOLD):
 				if (orthoTestRedGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedBlue < MIN_ORTHOGONAL_THRESHOLD):
 					if (orthoTestBlueGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestBlueGreen < MIN_ORTHOGONAL_THRESHOLD):
 						orthogonalPlanes = True
 				
-			if (orthogonalPlanes):
-			
+			if (orthogonalPlanes == False):
+				print("Planes are Not Orthogonal !")
+			elif (orthogonalPlanes == True):
 				# Feature detection
 				# Solve 3x3 linear system of equations given by the three intersecting planes, in order to find their point of intersection
 				interPoint = np.linalg.solve([self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]], np.array([1, 1, 1]))
@@ -150,9 +150,10 @@ class Estimation_Node:
 				# Set the rotation part of the 6DOF pose 'self.feature_pose'
 				### Enter your code ###
 				# use tf.transformations.quaternion_from_euler
-				self.feature_pose = Transform(Vector3(0, 0, 0.5), tf.transformations.quaternion_from_euler(0, 0, 0))
+				self.feature_pose = Transform(Vector3(interPoint[0], interPoint[1], interPoint[2]), tf.transformations.quaternion_from_euler(0, 0, 0))
 
 				# Publish the transform using the data stored in the 'self.feature_pose'
+				print("PUBLISH DATA !")
 				self.br.sendTransform((self.feature_pose.translation.x, self.feature_pose.translation.y, self.feature_pose.translation.z), self.feature_pose.rotation, rospy.Time.now(), "corner_6dof_pose", "camera_depth_optical_frame") 
 
 				# Empty points
