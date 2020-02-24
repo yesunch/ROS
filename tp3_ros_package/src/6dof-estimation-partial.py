@@ -72,20 +72,16 @@ class Estimation_Node:
 			enoughPoints = False
 		
 		if (enoughPoints):
-			# get only for points for every plane
-			selected_red_points = list()
+			# get only 4 points for every plane randomly
+			selected_red_points = []
 			for i in range(4):
 				selected_red_points.append(random.choice(self.plane_points["red"]))
-			selected_green_points = list()
+			selected_green_points = []
 			for j in range(4):
 				selected_green_points.append(random.choice(self.plane_points["green"]))
-			selected_blue_points = list()
+			selected_blue_points = []
 			for k in range(4):
 				selected_blue_points.append(random.choice(self.plane_points["blue"]))
-				
-			#selected_red_points = random.choices(plane_points["red"], k=4)
-			#selected_green_points = random.choices(plane_points["green"], k=4)
-			#selected_blue_points = random.choices(plane_points["blue"], k=4)
 		
 		
 			# Estimate the plane equation for each colored point set using Least Squares algorithm
@@ -112,10 +108,10 @@ class Estimation_Node:
 			print(orthoTestRedGreen)
 			print(orthoTestBlueGreen)
 			
-			MIN_ORTHOGONAL_THRESHOLD = 1.5
+			MIN_ORTHOGONAL_THRESHOLD = 1.2		# we set the minimal threshold to determine if the plane are approximaly orthogonal to each other
 			
 			if (orthoTestRedBlue > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedBlue < MIN_ORTHOGONAL_THRESHOLD):
-				if (orthoTestRedGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedBlue < MIN_ORTHOGONAL_THRESHOLD):
+				if (orthoTestRedGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestRedGreen < MIN_ORTHOGONAL_THRESHOLD):
 					if (orthoTestBlueGreen > -MIN_ORTHOGONAL_THRESHOLD and orthoTestBlueGreen < MIN_ORTHOGONAL_THRESHOLD):
 						orthogonalPlanes = True
 				
@@ -124,7 +120,8 @@ class Estimation_Node:
 			elif (orthogonalPlanes == True):
 				# Feature detection
 				# Solve 3x3 linear system of equations given by the three intersecting planes, in order to find their point of intersection
-				interPoint = np.linalg.solve([self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]], np.array([1, 1, 1]))
+				# we solve the equation using the plane equations all equals to one (because we have for every plane d = -1)
+				self.linear_solution = np.linalg.solve([self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]], np.array([1, 1, 1]))
 
 				# Obtain z-axis (blue) vector as the vector orthogonal to the 3D plane defined by the red (x-axis) and the green (y-axis)
 				### Enter your code ###
@@ -134,26 +131,18 @@ class Estimation_Node:
 				### Enter your code ###
 
 				# Construct the 3x3 rotation matrix whose columns correspond to the x, y and z axis respectively
-				### Enter your code ###
+				rotationMatrix = [self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]]
 
 				# Obtain the corresponding euler angles from the previous 3x3 rotation matrix
-				### Enter your code ###
-				# use tf.transformations.euler_from_matrix
+				eulerAngles = tf.transformations.euler_from_matrix(rotationMatrix)
+				print(eulerAngles)
 
 				# Set the translation part of the 6DOF pose 'self.feature_pose'
-				### Enter your code ###
-				#self.feature_pose.translation.x = interPoint[0]
-				#self.feature_pose.translation.y = interPoint[1]
-				#self.feature_pose.translation.z = interPoint[2]
-
-
 				# Set the rotation part of the 6DOF pose 'self.feature_pose'
-				### Enter your code ###
-				# use tf.transformations.quaternion_from_euler
-				self.feature_pose = Transform(Vector3(interPoint[0], interPoint[1], interPoint[2]), tf.transformations.quaternion_from_euler(0, 0, 0))
+				self.feature_pose = Transform(Vector3(self.linear_solution[0], self.linear_solution[1], self.linear_solution[2]), tf.transformations.quaternion_from_euler(eulerAngles[0], eulerAngles[1], eulerAngles[2]))
 
 				# Publish the transform using the data stored in the 'self.feature_pose'
-				print("PUBLISH DATA !")
+				print("6DOF feature calculated ! Published as TF corner_6dof_pose")
 				self.br.sendTransform((self.feature_pose.translation.x, self.feature_pose.translation.y, self.feature_pose.translation.z), self.feature_pose.rotation, rospy.Time.now(), "corner_6dof_pose", "camera_depth_optical_frame") 
 
 				# Empty points
