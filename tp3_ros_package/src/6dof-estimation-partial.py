@@ -124,15 +124,21 @@ class Estimation_Node:
 				self.linear_solution = np.linalg.solve([self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]], np.array([1, 1, 1]))
 
 				# Obtain z-axis (blue) vector as the vector orthogonal to the 3D plane defined by the red (x-axis) and the green (y-axis)
-				### Enter your code ###
+				# Obtain y-axis (green) vector as the vector orthogonal to the 3D plane defined by the blue (z-axis) and the red (x-axis)
+				red_vector = []
+				for i in range(len(self.plane_params["red"])-1):		# temporary solution, allows to find results, but i dont
+					red_vector.append(self.plane_params["red"][i]*-1)	# think it is the correct way to do it
+				
+				
+				blue_vector = []
+				for i in range(len(self.plane_params["blue"])-1):		# same here
+					blue_vector.append(self.plane_params["blue"][i]*-1)
 				
 
-				# Obtain y-axis (green) vector as the vector orthogonal to the 3D plane defined by the blue (z-axis) and the red (x-axis)
-				### Enter your code ###
-
 				# Construct the 3x3 rotation matrix whose columns correspond to the x, y and z axis respectively
-				rotationMatrix = [self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]]
-
+				#rotationMatrix = [self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]]
+				rotationMatrix = [red_vector, self.plane_params["green"][0:3], blue_vector]
+				
 				# Obtain the corresponding euler angles from the previous 3x3 rotation matrix
 				eulerAngles = tf.transformations.euler_from_matrix(rotationMatrix)
 				print(eulerAngles)
