@@ -94,19 +94,12 @@ class Estimation_Node:
 			self.plane_params["blue"][0], self.plane_params["blue"][1], self.plane_params["blue"][2] = np.linalg.lstsq(selected_blue_points, B, rcond=1.e-10)[0]
 			
 		
-			print("The planes params :")
-			print(self.plane_params["red"])
-			print(self.plane_params["green"])
-			print(self.plane_params["blue"])
-
+			
 		# Verify that each pair of 3D planes are approximately orthogonal to each other
 			orthoTestRedBlue = np.dot(self.plane_params["red"], self.plane_params["blue"])
 			orthoTestRedGreen = np.dot(self.plane_params["red"], self.plane_params["green"])
 			orthoTestBlueGreen = np.dot(self.plane_params["blue"], self.plane_params["green"])
 			
-			print(orthoTestRedBlue)
-			print(orthoTestRedGreen)
-			print(orthoTestBlueGreen)
 			
 			MIN_ORTHOGONAL_THRESHOLD = 1.2		# we set the minimal threshold to determine if the plane are approximaly orthogonal to each other
 			
@@ -125,30 +118,38 @@ class Estimation_Node:
 
 				# Obtain z-axis (blue) vector as the vector orthogonal to the 3D plane defined by the red (x-axis) and the green (y-axis)
 				# Obtain y-axis (green) vector as the vector orthogonal to the 3D plane defined by the blue (z-axis) and the red (x-axis)
-				red_vector = []
-				for i in range(len(self.plane_params["red"])-1):		# temporary solution, allows to find results, but i dont
-					red_vector.append(self.plane_params["red"][i]*-1)	# think it is the correct way to do it
-				
-				
-				blue_vector = []
-				for i in range(len(self.plane_params["blue"])-1):		# same here
-					blue_vector.append(self.plane_params["blue"][i]*-1)
-				
+			
 
+
+				
+				blue_vector=[]
+				blue_mod = 0
+				for i in range(len(self.plane_params["blue"])-1):
+					blue_mod+=self.plane_params["blue"][i]*self.plane_params["blue"][i]
+				blue_mod = np.sqrt(blue_mod)
+				blue_vector = self.plane_params["blue"]/blue_mod
+				
+				
+				green_vector=[]
+				green_mod = 0
+				for i in range(len(self.plane_params["green"])-1):
+					blue_mod+=self.plane_params["green"][i]*self.plane_params["green"][i]
+				green_mod = np.sqrt(blue_mod)
+				green_vector = self.plane_params["green"]/blue_mod
+								
+				
+				
 				# Construct the 3x3 rotation matrix whose columns correspond to the x, y and z axis respectively
-				#rotationMatrix = [self.plane_params["red"][0:3], self.plane_params["green"][0:3], self.plane_params["blue"][0:3]]
-				rotationMatrix = [red_vector, self.plane_params["green"][0:3], blue_vector]
+				rotationMatrix = [self.plane_params["red"][0:3], green_vector[0:3], blue_vector[0:3]]
 				
 				# Obtain the corresponding euler angles from the previous 3x3 rotation matrix
 				eulerAngles = tf.transformations.euler_from_matrix(rotationMatrix)
-				print(eulerAngles)
 
 				# Set the translation part of the 6DOF pose 'self.feature_pose'
 				# Set the rotation part of the 6DOF pose 'self.feature_pose'
 				self.feature_pose = Transform(Vector3(self.linear_solution[0], self.linear_solution[1], self.linear_solution[2]), tf.transformations.quaternion_from_euler(eulerAngles[0], eulerAngles[1], eulerAngles[2]))
 
 				# Publish the transform using the data stored in the 'self.feature_pose'
-				print("6DOF feature calculated ! Published as TF corner_6dof_pose")
 				self.br.sendTransform((self.feature_pose.translation.x, self.feature_pose.translation.y, self.feature_pose.translation.z), self.feature_pose.rotation, rospy.Time.now(), "corner_6dof_pose", "camera_depth_optical_frame") 
 
 				# Empty points
