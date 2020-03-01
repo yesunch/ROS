@@ -12,13 +12,14 @@ class Reactive_Node:
         rospy.init_node(node_name)
         bump_sub = rospy.Subscriber("/mobile_base/events/bumper", BumperEvent, self.stop)
         wheeldrop_sub = rospy.Subscriber("/mobile_base/events/wheel_drop", WheelDropEvent, self.stop)
-        cmd_vel = rospy.Publisher("cmd_vel_mux/input/navi", Twist, queue_size=10)
+        self.cmd_vel = rospy.Publisher("/cmd_vel_mux/input/navi", Twist, queue_size=10)
         rospy.spin()
 
-    def stop(self):
+    def stop(self, msg):
         # stop turtlebot
+        print("---------received bumper or wheel drop event--------------")
         rospy.loginfo("Stop turtlebot")
-        cmd_vel.publish(Twist())
+        self.cmd_vel.publish(Twist())
         # sleep just make sure the turtlebot receive the stop message
         rospy.sleep(1)
 
