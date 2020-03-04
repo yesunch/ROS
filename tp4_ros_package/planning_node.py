@@ -28,18 +28,24 @@ class Process_Node:
 		print("Origin X : " + str(data.info.origin.position.x))
 		print("Origin Y : " + str(data.info.origin.position.y))
 		print("Size : " + str(len(data.data)))
+		#print(data.data)
 		print("Beginning of the data")
 		for i in range(0, 10):
 			print(data.data[i])
 		print(data.data[data.info.width*10 + 25])
 		# here we try to transfrom the map to a graph
 		grid_map = Map(data)
-		points_map = grid_map.to_points_grid()
-		print("Size PointsMap : " + str(len(points_map)))
+		grid_map.to_points_grid()
+		print("Size PointsMap : " + str(len(grid_map.points_grid)))
 		print("Beginning of the map :")
 		for i in range(0, 10):
-			print(points_map[i].describe())
-		print(points_map[data.info.width*10 + 25].describe())
+			print(grid_map.points_grid[i].describe())
+		print(grid_map.points_grid[data.info.width*10 + 25].describe())
+		print(grid_map.getPointFromIndex(25, 10).describe())
+		
+		neightBoursOfA = grid_map.computePointNeighbours(grid_map.getPointFromIndex(25, 10))
+		for i in (neightBoursOfA):
+			print(i.describe())
 		
 
 if __name__ == '__main__':
