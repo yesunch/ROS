@@ -4,6 +4,8 @@ import rospy
 import sys
 from nav_msgs.msg import *
 from std_msgs.msg import *
+from Point import Point
+from Map import Map
 
 print("Planning Process")
 
@@ -20,10 +22,25 @@ class Process_Node:
 		
 	def callback(self, data):
 		print("Data received !")
-		print(data)
-		for i in range(len(data.data)):
-			if (i == len(data.data)-1):
-				print(i)
+		print("Width : " + str(data.info.width))
+		print("Height : " + str(data.info.height))
+		print("Resolution : " + str(data.info.resolution))
+		print("Origin X : " + str(data.info.origin.position.x))
+		print("Origin Y : " + str(data.info.origin.position.y))
+		print("Size : " + str(len(data.data)))
+		print("Beginning of the data")
+		for i in range(0, 10):
+			print(data.data[i])
+		print(data.data[data.info.width*10 + 25])
+		# here we try to transfrom the map to a graph
+		grid_map = Map(data)
+		points_map = grid_map.to_points_grid()
+		print("Size PointsMap : " + str(len(points_map)))
+		print("Beginning of the map :")
+		for i in range(0, 10):
+			print(points_map[i].describe())
+		print(points_map[data.info.width*10 + 25].describe())
+		
 
 if __name__ == '__main__':
 	my_process_node = Process_Node("process_node")
