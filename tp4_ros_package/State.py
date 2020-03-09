@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class Point:
+class State:
 	
 	def __init__(self, posX, posY, indX, indY, state):
 		self.positionX = posX
@@ -22,6 +22,6 @@ class Point:
 		
 		
 	def describe(self):
-		return ("Point of Index : (" + str(self.indexX) + "," + str(self.indexY) + "), Position " + str(self.positionX) + ", " + str(self.positionY) + " and state : " + str(self.state))
+		return ("State of Index : (" + str(self.indexX) + "," + str(self.indexY) + "), Position " + str(self.positionX) + ", " + str(self.positionY) + " and state : " + str(self.state))
 		
 		
