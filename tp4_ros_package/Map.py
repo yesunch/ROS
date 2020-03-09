@@ -4,7 +4,9 @@ from State import State
 import random
 
 class Map:
-
+	"""
+	The Map class represents the map around the robot.
+	"""
 
 	def __init__(self, grid):
 		self.map = grid
