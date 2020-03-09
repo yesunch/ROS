@@ -18,6 +18,7 @@ class Map:
 		self.origin = (grid.info.origin.position.x, grid.info.origin.position.y)
 		
 		
+		
 	def to_points_grid(self):
 		# method to transfrom grid to point grid with coordonates and state
 		for j in range(0, self.height):
@@ -33,9 +34,13 @@ class Map:
 		
 		
 	def getPointFromCoordonates(self, coorX, coorY):
+		delta = 0.000005
 		for p in self.points_grid:
-			if (p.positionX == coorX and p.positionY == coorY):
-				return p;
+			if (p.positionX - delta <= coorX <= p.positionX + delta):
+				if (p.positionY - delta <= coorY <= p.positionY + delta):
+					return p;
+				
+				
 				
 	def defineGoalPoint(self):
 		# method to take randomly a goal point
@@ -44,6 +49,8 @@ class Map:
 			if p.state == 0:
 				free_points.append(p)
 		return random.choice(free_points)
+			
+			
 			
 	def computePointNeighbours(self, p):	
 		neighBours = []		
@@ -56,4 +63,49 @@ class Map:
 		if (p.indexY != self.height-1 and self.getPointFromIndex(p.indexX, p.indexY+1).state == 0):
 			neighBours.append(self.getPointFromIndex(p.indexX, p.indexY+1))
 		return neighBours
+		
+		
+		
+	def bfs(self, initialPoint, goalPoint):
+		O = []
+		C = []
+		O.append(initialPoint)
+		while (len(O) != 0):
+			x = O.pop(0)
+			C.append(x)
+			if (x == goalPoint):
+				return x
+			else:
+				for p in self.computePointNeighbours(x):
+					if (p == goalPoint):
+						p.parent = x
+						return p
+					elif (p not in O and p not in C):
+						p.parent = x
+						O.append(p)
+		return None
+		
+		
+		
+	def recoverPathPoints(self, resultOfBfs):
+		points = []
+		x = resultOfBfs
+		while (x.parent is not None):
+			points.append(x)
+			x = x.parent
+		points.append(x)
+		return points
+		
+		
+		
+		
+	def getGridIndexFromPointIndex(self, p):
+		return self.width*p.positionX + p.positionY
+		
+		
+	def computeNewMap(self, points):
+		for p in points:
+			self.map[self.getGridIndexFromPointIndex(p)] = 100
+		return self.grid
+		
 			

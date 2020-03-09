@@ -19,11 +19,16 @@ class Process_Node:
 		self.isStartPointSet = False
 		self.initialPose = ()
 		
+		self.path = []
+		self.path_publisher = rospy.Publisher("new_map", OccupancyGrid, queue_size=1)
+		
 		rospy.init_node(node_name, anonymous=True)
 		self.rate = rospy.Rate(0.5)
 		#rospy.Subscriber("/odom", Odometry, self.start_point_callback)
 		#self.rate.sleep()
-		rospy.Subscriber("/map", OccupancyGrid, self.callback)		
+		rospy.Subscriber("/map", OccupancyGrid, self.callback)	
+		
+			
 		rospy.spin()
 		
 		"""
@@ -46,8 +51,8 @@ class Process_Node:
 		print("Origin Y : " + str(data.info.origin.position.y))
 		print("Size : " + str(len(data.data)))
 		#print(data.data)
-		self.initialPose = (data.info.origin.position.x, data.info.origin.position.y)
-		#self.initialPose = (0, 0)
+		#self.initialPose = (data.info.origin.position.x, data.info.origin.position.y)
+		self.initialPose = (0, 0)
 
 		# here we try to transfrom the map to a graph
 		self.grid_map = Map(data)
@@ -64,9 +69,26 @@ class Process_Node:
 				compt = compt+1
 		print("Number of points with state 0 : " + str(compt))
 		
-		print(self.grid_map.getPointFromCoordonates(self.initialPose[0], self.initialPose[1]).describe())
+		initial_point = self.grid_map.getPointFromCoordonates(self.initialPose[0], self.initialPose[1])
+		print("Initial Point : " + initial_point.describe())
 		goal_point = self.grid_map.defineGoalPoint()
-		print(goal_point.describe())
+		print("Goal Point : " + goal_point.describe())
+		
+		print("Launch BFS")
+		points_of_path = self.grid_map.bfs(initial_point, goal_point)
+		
+		if (points_of_path is None):
+			print("No path found")
+		else:
+			print("Retreive path")
+			self.path = self.grid_map.recoverPathPoints(points_of_path)
+		
+			print("Print Path : ")
+			for p in self.path:
+				print(p.describe())
+		
+		
+		self.path_publisher(self.grid_map.computeNewMap(self.path))
 
 			
 			
