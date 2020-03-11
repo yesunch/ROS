@@ -15,7 +15,7 @@ class TrajectoryPlanner:
     def __init__(self):
         self.map = None
         self.start = State(0, 0)
-        self.goal = State(0.5, 1)
+        self.goal = State(0.5, 0.5)
 
         self.moves = [Move(0.5, 0),  # forward
                       Move(-0.5, 0),  # back
