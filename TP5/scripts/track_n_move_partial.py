@@ -162,14 +162,23 @@ class Node:
         # Your code starts here
         # ...
         img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-        
         # define range of red color in HSV
-        lower_red = np.array([0,43,46])
-        upper_red = np.array([10,255,255])
+        #lower_red = np.array([0,43,46])
+        #upper_red = np.array([10,255,255])
         # Threshold the HSV image to get only blue colors
-        mask = cv2.inRange(img, lower_red, upper_red)
+        #mask = cv2.inRange(img, lower_red, upper_red)
         # Bitwise-AND mask and original image
-        img = cv2.bitwise_and(img,img, mask= mask)
+        #img = cv2.bitwise_and(img,img, mask= mask)
+        
+
+        #try to find the circle
+        circles = cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,20,
+                            param1=50,param2=30,minRadius=0,maxRadius=0)
+        circles = np.uint16(np.around(circles))
+        for i in circles[0,:]:
+        # get the center of the circle
+            x = i[0]
+            y = i[1]
         
         # Publish necessary commands
         linear = 0.
