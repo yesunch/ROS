@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
+import numpy as np
 import sys
 import cv2
 import message_filters
@@ -160,7 +161,15 @@ class Node:
         # Circle detection
         # Your code starts here
         # ...
-        hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+        img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+        
+        # define range of red color in HSV
+        lower_red = np.array([0,43,46])
+        upper_red = np.array([10,255,255])
+        # Threshold the HSV image to get only blue colors
+        mask = cv2.inRange(img, lower_red, upper_red)
+        # Bitwise-AND mask and original image
+        img = cv2.bitwise_and(img,img, mask= mask)
         
         # Publish necessary commands
         linear = 0.
