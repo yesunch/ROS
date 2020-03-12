@@ -151,7 +151,27 @@ class Node:
             return img
 
         # Your code starts here
-        # ...
+        x, y, w, h = 300, 200, 100, 50
+        track_window = (x, y, w, h)
+        
+        roi = img[y:y+h, x:x+w]
+        hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv_roi, np.array((0., 60., 23.)), np.array((180., 255., 255.)))
+        roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0,180])
+        cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
+        
+        term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
+        
+        compt = 0
+        while (compt < 100):
+		    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+		    dst = cv2.calcBackProject([hsv], [0], roi_hist, [0,180],1)
+		    ret, track_window = cv2.meanShift(dst, track_window, term_crit)
+		    compt = compt + 1
+		# draw img
+        x, y, w, h = track_window
+        cv2.rectangle(img, (x,y), (x+w,y+h), 255, 2)
+		    
 
         # Publish commands
         linear = 0.
