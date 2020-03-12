@@ -51,7 +51,14 @@ class Node:
         # Ids ranges from 0-249
         self.parameters = cv2.aruco.DetectorParameters_create()
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_250)
-
+        
+        # rate
+        self.rate = rospy.Rate(1)
+        
+        # first circle
+        self.firstCircle = True
+        self.x = []
+        
         # Velocity control message
         self.msg_vel = Twist()
         rospy.spin()
@@ -158,10 +165,8 @@ class Node:
         :param img: opencv image
         :return img: processed opencv image
         """
-        firstCircle = True
         
         # Circle detection
-        #
         cimg = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)	# convert the image to HSV
         # define range of red color in HSV
         lower_red = np.array([0,100,100])
@@ -173,29 +178,31 @@ class Node:
         
         #try to find the circle
         grayImg = cv2.cvtColor(cimg, cv2.COLOR_BGR2GRAY)		 # get the gray image for the HoughCircles function
-        circles = cv2.HoughCircles(grayImg,cv2.HOUGH_GRADIENT,1,10, param1=50,param2=30,minRadius=0,maxRadius=0)	# compute the circle
-        circles = np.uint16(np.around(circles))
-        # draw the circles
-        for i in circles[0,:]:			
-        	cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
-        	cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
+        circles = cv2.HoughCircles(grayImg,cv2.HOUGH_GRADIENT,1, 30, param1=50,param2=30,minRadius=0,maxRadius=0)	# compute the circle
+        
+        if (circles is not None):				# if circle found
+        	print(">> Circle found")
+        	circles = np.int16(np.around(circles))
+        	circle = [circles[0][0][0], circles[0][0][1], circles[0][0][2]]
+        	cv2.circle(img, (circle[0], circle[1]), circle[2], (0, 225, 0), 2)		# draw the circle
+        	cv2.circle(img, (circle[0], circle[1]), 2, (0, 0, 255), 3)				# draw the circle
         	
-        	"""
-        	if (firstCircle is True):
-        		currentLinear = i[0]
-        		currentAngular = i[1]
-        		firstCircle = False
-        	else:
-        		newLinear = i[0]
-        		newAngular = i[1]
-        		goLinear = newLinear - currentLinear
-        		goAngular = newAngular - currentAngular
-			"""
-       
+        	if (self.firstCircle is True):			# if the circle is the first to be seen
+        		self.x = [circle[0], circle[1]]		# store its position
+        		self.firstCircle = False
+        		linear = 0.
+        		angular = 0.
+        	else:  									# for other circles
+        		xprime = [circle[0], circle[1]]		# store the current circle position
+        		delta = [xprime[0] - self.x[0], xprime[1] - self.x[1]]	# compute the difference of position with the previous circle
+        		self.x = xprime							# set the previous circle as this new circle
+        		linear = float(float(delta[1])/200)		# send the linear mvt according to the delta computed
+        		angular = float(float(delta[0])/500)   	# send the angular mvt according to the delta computed
+        		print(">> Moving the robot")     		
+        		self.send_commands(linear, -angular)	# move the robot
+        	    
         # Publish necessary commands
-        linear = 0.
-        angular = 0.
-        self.send_commands(linear, angular)        
+        self.rate.sleep()     
         return img
 
         
