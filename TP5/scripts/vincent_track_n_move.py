@@ -57,7 +57,12 @@ class Node:
         
         # first circle
         self.firstCircle = True
-        self.x = []
+        self.x1 = []
+        
+        # window dimension for meanshift
+        self.x, self.y, self.w, self.h = 250, 120, 110, 160
+        self.track_window = (self.x, self.y, self.w, self.h)
+        self.firstImgForJoker = True
         
         # Velocity control message
         self.msg_vel = Twist()
@@ -151,26 +156,22 @@ class Node:
             return img
 
         # Your code starts here
-        x, y, w, h = 300, 200, 100, 50
-        track_window = (x, y, w, h)
-        
-        roi = img[y:y+h, x:x+w]
-        hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv_roi, np.array((0., 60., 23.)), np.array((180., 255., 255.)))
-        roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0,180])
-        cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
-        
-        term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
-        
-        compt = 0
-        while (compt < 100):
-		    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-		    dst = cv2.calcBackProject([hsv], [0], roi_hist, [0,180],1)
-		    ret, track_window = cv2.meanShift(dst, track_window, term_crit)
-		    compt = compt + 1
-		# draw img
-        x, y, w, h = track_window
-        cv2.rectangle(img, (x,y), (x+w,y+h), 255, 2)
+        #x, y, w, h = 250, 120, 110, 160
+        track_window = (self.x, self.y, self.w, self.h)
+        if (self.firstImgForJoker is True):
+        	roi = img[self.y:self.y+self.h, self.x:self.x+self.w]
+        	hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        	mask = cv2.inRange(hsv_roi, np.array((50., 100., 100.)), np.array((180., 255., 255.)))
+        	self.roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0,180])
+        	cv2.normalize(self.roi_hist, self.roi_hist, 0, 255, cv2.NORM_MINMAX)
+        	self.term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
+        	self.firstImgForJoker = False
+        else:
+        	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        	dst = cv2.calcBackProject([hsv], [0], self.roi_hist, [0,180],1)
+        	ret, self.track_window = cv2.meanShift(dst, self.track_window, self.term_crit)
+        	self.x, self.y, self.w, self.h = self.track_window
+        	cv2.rectangle(img, (self.x, self.y), (self.x+self.w, self.y+self.h), 255, 2)
 		    
 
         # Publish commands
@@ -208,14 +209,14 @@ class Node:
         	cv2.circle(img, (circle[0], circle[1]), 2, (0, 0, 255), 3)				# draw the circle
         	
         	if (self.firstCircle is True):			# if the circle is the first to be seen
-        		self.x = [circle[0], circle[1]]		# store its position
+        		self.x1 = [circle[0], circle[1]]		# store its position
         		self.firstCircle = False
         		linear = 0.
         		angular = 0.
         	else:  									# for other circles
         		xprime = [circle[0], circle[1]]		# store the current circle position
-        		delta = [xprime[0] - self.x[0], xprime[1] - self.x[1]]	# compute the difference of position with the previous circle
-        		self.x = xprime							# set the previous circle as this new circle
+        		delta = [xprime[0] - self.x1[0], xprime[1] - self.x1[1]]	# compute the difference of position with the previous circle
+        		self.x1 = xprime							# set the previous circle as this new circle
         		linear = float(float(delta[1])/200)		# send the linear mvt according to the delta computed
         		angular = float(float(delta[0])/500)   	# send the angular mvt according to the delta computed
         		print(">> Moving the robot")     		
