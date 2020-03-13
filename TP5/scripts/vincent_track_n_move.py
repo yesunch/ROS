@@ -57,12 +57,16 @@ class Node:
         
         # first circle
         self.firstCircle = True
-        self.x1 = []
+        self.x1 = []			# list to store the x and y coordonates of the circle, to move the robot according to the card mouvement
         
         # window dimension for meanshift
         self.x, self.y, self.w, self.h = 250, 120, 110, 160
         self.track_window = (self.x, self.y, self.w, self.h)
         self.firstImgForJoker = True
+        
+        # x coordonates for rectangle, to move the robot according to the card mouvement
+        self.x_first = 0.
+        self.x_second = 0.
         
         # Velocity control message
         self.msg_vel = Twist()
@@ -155,29 +159,35 @@ class Node:
             print("No Aruco markers in the field of view.\n")
             return img
 
-        # Your code starts here
-        #x, y, w, h = 250, 120, 110, 160
-        track_window = (self.x, self.y, self.w, self.h)
-        if (self.firstImgForJoker is True):
-        	roi = img[self.y:self.y+self.h, self.x:self.x+self.w]
-        	hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        	mask = cv2.inRange(hsv_roi, np.array((50., 100., 100.)), np.array((180., 255., 255.)))
-        	self.roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0,180])
-        	cv2.normalize(self.roi_hist, self.roi_hist, 0, 255, cv2.NORM_MINMAX)
-        	self.term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
-        	self.firstImgForJoker = False
+        track_window = (self.x, self.y, self.w, self.h)		# set the track window
+        if (self.firstImgForJoker is True):					# for first time we see the joker
+        	roi = img[self.y:self.y+self.h, self.x:self.x+self.w]		# set the roi
+        	hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)				# convert the roi to hsv color
+        	mask = cv2.inRange(hsv_roi, np.array((50., 100., 100.)), np.array((180., 255., 255.)))	# set the range for the mask
+        	self.roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0,180])			# compute the histogram
+        	cv2.normalize(self.roi_hist, self.roi_hist, 0, 255, cv2.NORM_MINMAX)		# normalize the histogram
+        	self.term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)	# define the termination criteria
+        	self.firstImgForJoker = False												# set false to first image
+        	self.x_first = self.x												# to move the robot : get the current x position
+        	linear = 0.
+        	angular = 0.
         else:
-        	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        	dst = cv2.calcBackProject([hsv], [0], self.roi_hist, [0,180],1)
-        	ret, self.track_window = cv2.meanShift(dst, self.track_window, self.term_crit)
-        	self.x, self.y, self.w, self.h = self.track_window
-        	cv2.rectangle(img, (self.x, self.y), (self.x+self.w, self.y+self.h), 255, 2)
+        	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)				# convert the image to hsv
+        	dst = cv2.calcBackProject([hsv], [0], self.roi_hist, [0,180],1)	# compute the distance
+        	ret, self.track_window = cv2.meanShift(dst, self.track_window, self.term_crit)		# mean shift algorithm
+        	self.x, self.y, self.w, self.h = self.track_window					# set the new track_window
+        	cv2.rectangle(img, (self.x, self.y), (self.x+self.w, self.y+self.h), 255, 2)	# draw it in the image
+        	self.x_second = self.x			# get the new value of x
+        	delta = self.x_second - self.x_first	# compute the difference between the previous value of x and the new one to move the robot
+        	delta = float(float(delta)/500) 		# compute the value of the angular mvt
+        	linear = 0.			
+        	angular = -delta
+        	self.x_first = self.x_second		# set the new previous value with the current value
 		    
 
         # Publish commands
-        linear = 0.
-        angular = 0.
-        self.send_commands(linear, angular)        
+        self.send_commands(linear, angular)  
+        self.rate.sleep()      
         return img
 
     def process_image_circle(self, img, depth):
